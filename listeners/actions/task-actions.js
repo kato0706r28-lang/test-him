@@ -1,4 +1,10 @@
-import { buildHomeView, buildTaskModalView, setUserState, toggleTaskStatus } from '../../utils/task-store.js';
+import {
+  buildHomeView,
+  buildTaskModalView,
+  getUserState,
+  setUserState,
+  toggleTaskStatus,
+} from '../../utils/task-store.js';
 
 export const navTabTasksCallback = async ({ ack, body, client, logger }) => {
   try {
@@ -52,6 +58,34 @@ export const filterMyTasksCallback = async ({ ack, body, client, logger }) => {
   }
 };
 
+export const filterByChannelCallback = async ({ ack, body, action, client, logger }) => {
+  try {
+    await ack();
+    setUserState(body.user.id, {
+      selectedChannel: action.selected_conversation,
+    });
+    await client.views.publish({
+      user_id: body.user.id,
+      view: buildHomeView({ userId: body.user.id }),
+    });
+  } catch (error) {
+    logger.error(error);
+  }
+};
+
+export const filterClearChannelCallback = async ({ ack, body, client, logger }) => {
+  try {
+    await ack();
+    setUserState(body.user.id, { selectedChannel: null });
+    await client.views.publish({
+      user_id: body.user.id,
+      view: buildHomeView({ userId: body.user.id }),
+    });
+  } catch (error) {
+    logger.error(error);
+  }
+};
+
 export const toggleTaskStatusCallback = async ({ ack, body, action, client, logger }) => {
   try {
     await ack();
@@ -68,9 +102,13 @@ export const toggleTaskStatusCallback = async ({ ack, body, action, client, logg
 export const openAddTaskModalCallback = async ({ ack, body, client, logger }) => {
   try {
     await ack();
+    const state = getUserState(body.user.id);
     await client.views.open({
       trigger_id: body.trigger_id,
-      view: buildTaskModalView({ userId: body.user.id }),
+      view: buildTaskModalView({
+        userId: body.user.id,
+        defaultChannelId: state.selectedChannel,
+      }),
     });
   } catch (error) {
     logger.error(error);

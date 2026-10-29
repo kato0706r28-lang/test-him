@@ -14,7 +14,11 @@ const userStateMap = new Map();
 
 export const getUserState = (userId) => {
   if (!userStateMap.has(userId)) {
-    userStateMap.set(userId, { activeTab: 'tasks', activeFilter: 'all' });
+    userStateMap.set(userId, {
+      activeTab: 'tasks',
+      activeFilter: 'all',
+      selectedChannel: null,
+    });
   }
   return userStateMap.get(userId);
 };
@@ -30,6 +34,7 @@ const createDefaultTasks = (userId) => [
     title: 'task2',
     creatorId: userId,
     assigneeId: userId,
+    channelId: null,
     priority: 'medium',
     dueDate: '2026-10-30',
     description: 'aa',
@@ -41,6 +46,7 @@ const createDefaultTasks = (userId) => [
     title: 'task1',
     creatorId: userId,
     assigneeId: userId,
+    channelId: null,
     priority: 'medium',
     dueDate: '2026-10-29',
     description: 't',
@@ -82,13 +88,22 @@ export const saveTasks = (tasks) => {
   }
 };
 
-export const addTask = ({ title, creatorId, assigneeId, priority = 'medium', dueDate, description = '' }) => {
+export const addTask = ({
+  title,
+  creatorId,
+  assigneeId,
+  channelId = null,
+  priority = 'medium',
+  dueDate,
+  description = '',
+}) => {
   const tasks = loadTasks(creatorId);
   const newTask = {
     id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     title,
     creatorId,
     assigneeId: assigneeId || creatorId,
+    channelId: channelId || null,
     priority,
     dueDate: dueDate || new Date().toISOString().slice(0, 10),
     description,
@@ -183,14 +198,21 @@ export const buildHomeView = ({ userId }) => {
     };
   }
 
-  const filteredTasks =
-    state.activeFilter === 'my' ? allTasks.filter((t) => t.assigneeId === userId || t.creatorId === userId) : allTasks;
+  let filteredTasks = allTasks;
+  if (state.selectedChannel) {
+    filteredTasks = filteredTasks.filter((t) => t.channelId === state.selectedChannel);
+  }
+  if (state.activeFilter === 'my') {
+    filteredTasks = filteredTasks.filter((t) => t.assigneeId === userId || t.creatorId === userId);
+  }
+
+  const channelTitle = state.selectedChannel ? `📢 <#${state.selectedChannel}> のタスク` : '🌐 全体共有タスク';
 
   const headerBlock = {
     type: 'section',
     text: {
       type: 'mrkdwn',
-      text: `🌐 全体共有タスク (${filteredTasks.length}件)`,
+      text: `${channelTitle} (${filteredTasks.length}件)`,
     },
     accessory: {
       type: 'button',
@@ -199,6 +221,35 @@ export const buildHomeView = ({ userId }) => {
       action_id: 'open_add_task_modal',
     },
   };
+
+  const channelFilterElements = [
+    {
+      type: 'conversations_select',
+      action_id: 'filter_by_channel',
+      placeholder: {
+        type: 'plain_text',
+        text: '📢 チャンネルで絞り込み...',
+        emoji: true,
+      },
+      filter: {
+        include: ['public', 'private'],
+        exclude_bot_users: true,
+      },
+      ...(state.selectedChannel ? { initial_conversation: state.selectedChannel } : {}),
+    },
+  ];
+
+  if (state.selectedChannel) {
+    channelFilterElements.push({
+      type: 'button',
+      text: {
+        type: 'plain_text',
+        text: '❌ 全チャンネル表示に戻す',
+        emoji: true,
+      },
+      action_id: 'filter_clear_channel',
+    });
+  }
 
   const filterBlocks = [
     headerBlock,
@@ -220,6 +271,11 @@ export const buildHomeView = ({ userId }) => {
         },
       ],
     },
+    {
+      type: 'actions',
+      block_id: 'channel_filter_block',
+      elements: channelFilterElements,
+    },
     { type: 'divider' },
   ];
 
@@ -239,12 +295,13 @@ export const buildHomeView = ({ userId }) => {
       const isDone = task.status === 'completed';
       const titleLine = isDone ? `~*${task.title}*~` : `*${task.title}*`;
       const descLine = task.description ? `\n> ${task.description}` : '';
+      const channelLine = task.channelId ? ` | 📢 <#${task.channelId}>` : '';
 
       taskBlocks.push({
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `${titleLine}\n作成: <@${task.creatorId}> | 担当: <@${task.assigneeId}>\n優先度: ${priorityInfo.emoji} ${priorityInfo.label} | 期限: 📅 ${task.dueDate}${descLine}`,
+          text: `${titleLine}\n作成: <@${task.creatorId}> | 担当: <@${task.assigneeId}>\n優先度: ${priorityInfo.emoji} ${priorityInfo.label} | 期限: 📅 ${task.dueDate}${channelLine}${descLine}`,
         },
         accessory: {
           type: 'button',
@@ -268,126 +325,154 @@ export const buildHomeView = ({ userId }) => {
   };
 };
 
-export const buildTaskModalView = ({ userId }) => ({
-  type: 'modal',
-  callback_id: 'submit_add_task_modal',
-  title: {
-    type: 'plain_text',
-    text: 'タスクを新規登録',
-    emoji: true,
-  },
-  submit: {
-    type: 'plain_text',
-    text: '登録する',
-    emoji: true,
-  },
-  close: {
-    type: 'plain_text',
-    text: 'キャンセル',
-    emoji: true,
-  },
-  blocks: [
-    {
-      type: 'input',
-      block_id: 'title_block',
-      element: {
-        type: 'plain_text_input',
-        action_id: 'title_input',
-        placeholder: {
-          type: 'plain_text',
-          text: 'タスク名を入力',
-        },
-      },
-      label: {
-        type: 'plain_text',
-        text: 'タスク名',
-        emoji: true,
-      },
+export const buildTaskModalView = ({ userId, defaultChannelId = null }) => {
+  const channelElement = {
+    type: 'conversations_select',
+    action_id: 'channel_input',
+    placeholder: {
+      type: 'plain_text',
+      text: '追加先チャンネルを選択...',
+      emoji: true,
     },
-    {
-      type: 'input',
-      block_id: 'assignee_block',
-      element: {
-        type: 'users_select',
-        action_id: 'assignee_input',
-        initial_user: userId,
-        placeholder: {
-          type: 'plain_text',
-          text: '担当者を選択',
-        },
-      },
-      label: {
-        type: 'plain_text',
-        text: '担当者',
-        emoji: true,
-      },
+    filter: {
+      include: ['public', 'private'],
+      exclude_bot_users: true,
     },
-    {
-      type: 'input',
-      block_id: 'priority_block',
-      element: {
-        type: 'static_select',
-        action_id: 'priority_input',
-        initial_option: {
-          text: { type: 'plain_text', text: '🟡 中', emoji: true },
-          value: 'medium',
+    ...(defaultChannelId ? { initial_conversation: defaultChannelId } : {}),
+  };
+
+  return {
+    type: 'modal',
+    callback_id: 'submit_add_task_modal',
+    title: {
+      type: 'plain_text',
+      text: 'タスクを新規登録',
+      emoji: true,
+    },
+    submit: {
+      type: 'plain_text',
+      text: '登録する',
+      emoji: true,
+    },
+    close: {
+      type: 'plain_text',
+      text: 'キャンセル',
+      emoji: true,
+    },
+    blocks: [
+      {
+        type: 'input',
+        block_id: 'channel_block',
+        optional: true,
+        element: channelElement,
+        label: {
+          type: 'plain_text',
+          text: '追加先チャンネル (任意)',
+          emoji: true,
         },
-        options: [
-          {
-            text: { type: 'plain_text', text: '🔴 高', emoji: true },
-            value: 'high',
+      },
+      {
+        type: 'input',
+        block_id: 'title_block',
+        element: {
+          type: 'plain_text_input',
+          action_id: 'title_input',
+          placeholder: {
+            type: 'plain_text',
+            text: 'タスク名を入力',
           },
-          {
+        },
+        label: {
+          type: 'plain_text',
+          text: 'タスク名',
+          emoji: true,
+        },
+      },
+      {
+        type: 'input',
+        block_id: 'assignee_block',
+        element: {
+          type: 'users_select',
+          action_id: 'assignee_input',
+          initial_user: userId,
+          placeholder: {
+            type: 'plain_text',
+            text: '担当者を選択',
+          },
+        },
+        label: {
+          type: 'plain_text',
+          text: '担当者',
+          emoji: true,
+        },
+      },
+      {
+        type: 'input',
+        block_id: 'priority_block',
+        element: {
+          type: 'static_select',
+          action_id: 'priority_input',
+          initial_option: {
             text: { type: 'plain_text', text: '🟡 中', emoji: true },
             value: 'medium',
           },
-          {
-            text: { type: 'plain_text', text: '🟢 低', emoji: true },
-            value: 'low',
+          options: [
+            {
+              text: { type: 'plain_text', text: '🔴 高', emoji: true },
+              value: 'high',
+            },
+            {
+              text: { type: 'plain_text', text: '🟡 中', emoji: true },
+              value: 'medium',
+            },
+            {
+              text: { type: 'plain_text', text: '🟢 低', emoji: true },
+              value: 'low',
+            },
+          ],
+        },
+        label: {
+          type: 'plain_text',
+          text: '優先度',
+          emoji: true,
+        },
+      },
+      {
+        type: 'input',
+        block_id: 'due_block',
+        element: {
+          type: 'datepicker',
+          action_id: 'due_input',
+          placeholder: {
+            type: 'plain_text',
+            text: '期限日を選択',
           },
-        ],
-      },
-      label: {
-        type: 'plain_text',
-        text: '優先度',
-        emoji: true,
-      },
-    },
-    {
-      type: 'input',
-      block_id: 'due_block',
-      element: {
-        type: 'datepicker',
-        action_id: 'due_input',
-        placeholder: {
+        },
+        label: {
           type: 'plain_text',
-          text: '期限日を選択',
+          text: '期限日',
+          emoji: true,
         },
       },
-      label: {
-        type: 'plain_text',
-        text: '期限日',
-        emoji: true,
-      },
-    },
-    {
-      type: 'input',
-      block_id: 'desc_block',
-      optional: true,
-      element: {
-        type: 'plain_text_input',
-        action_id: 'desc_input',
-        multiline: true,
-        placeholder: {
+      {
+        type: 'input',
+        block_id: 'desc_block',
+        optional: true,
+        element: {
+          type: 'plain_text_input',
+          action_id: 'desc_input',
+          multiline: true,
+          placeholder: {
+            type: 'plain_text',
+            text: '詳細やメモがあれば入力',
+          },
+        },
+        label: {
           type: 'plain_text',
-          text: '詳細やメモがあれば入力',
+          text: '詳細・メモ',
+          emoji: true,
         },
       },
-      label: {
-        type: 'plain_text',
-        text: '詳細・メモ',
-        emoji: true,
-      },
-    },
-  ],
-});
+    ],
+  };
+};

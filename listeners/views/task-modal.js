@@ -1,13 +1,24 @@
 import { addTask, buildHomeView } from '../../utils/task-store.js';
 
-export const submitAddTaskModalCallback = async ({ ack, view, body, client, logger }) => {
+export const submitAddTaskModalCallback = async ({
+  ack,
+  view,
+  body,
+  client,
+  logger,
+}) => {
   try {
     await ack();
 
     const values = view.state.values;
+    const channelId = values.channel_block?.channel_input?.selected_conversation || null;
+    const channelId =
+      values.channel_block?.channel_input?.selected_conversation || null;
     const title = values.title_block?.title_input?.value || '無題のタスク';
-    const assigneeId = values.assignee_block?.assignee_input?.selected_user || body.user.id;
-    const priority = values.priority_block?.priority_input?.selected_option?.value || 'medium';
+    const assigneeId =
+      values.assignee_block?.assignee_input?.selected_user || body.user.id;
+    const priority =
+      values.priority_block?.priority_input?.selected_option?.value || 'medium';
     const dueDate = values.due_block?.due_input?.selected_date || null;
     const description = values.desc_block?.desc_input?.value || '';
 
@@ -15,6 +26,7 @@ export const submitAddTaskModalCallback = async ({ ack, view, body, client, logg
       title,
       creatorId: body.user.id,
       assigneeId,
+      channelId,
       priority,
       dueDate,
       description,

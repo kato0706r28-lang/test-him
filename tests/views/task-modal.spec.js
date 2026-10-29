@@ -72,4 +72,3 @@ describe('task-modal', () => {
     assert.strictEqual(fakeClient.views.publish.mock.callCount(), 1);
   });
 });
-

@@ -2,6 +2,8 @@ import assert from 'node:assert';
 import { beforeEach, describe, it, mock } from 'node:test';
 import {
   filterAllTasksCallback,
+  filterByChannelCallback,
+  filterClearChannelCallback,
   filterMyTasksCallback,
   navTabCounterCallback,
   navTabTasksCallback,
@@ -80,6 +82,31 @@ describe('task-actions', () => {
     assert.strictEqual(fakeClient.views.publish.mock.callCount(), 1);
   });
 
+  it('should filter by channel', async () => {
+    await filterByChannelCallback({
+      ack: fakeAck,
+      body: fakeBody,
+      action: { selected_conversation: 'C1234' },
+      client: fakeClient,
+      logger: fakeLogger,
+    });
+
+    assert.strictEqual(fakeAck.mock.callCount(), 1);
+    assert.strictEqual(fakeClient.views.publish.mock.callCount(), 1);
+  });
+
+  it('should clear channel filter', async () => {
+    await filterClearChannelCallback({
+      ack: fakeAck,
+      body: fakeBody,
+      client: fakeClient,
+      logger: fakeLogger,
+    });
+
+    assert.strictEqual(fakeAck.mock.callCount(), 1);
+    assert.strictEqual(fakeClient.views.publish.mock.callCount(), 1);
+  });
+
   it('should toggle task status', async () => {
     await toggleTaskStatusCallback({
       ack: fakeAck,
@@ -105,4 +132,3 @@ describe('task-actions', () => {
     assert.strictEqual(fakeClient.views.open.mock.callCount(), 1);
   });
 });
-

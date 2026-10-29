@@ -1,5 +1,41 @@
 [
   {
+    "id": "task_1793250276314_rjw1",
+    "title": "test task",
+    "creatorId": "U1234",
+    "assigneeId": "U9999",
+    "channelId": null,
+    "priority": "high",
+    "dueDate": "2026-10-31",
+    "description": "test description",
+    "status": "pending",
+    "createdAt": "2026-10-29"
+  },
+  {
+    "id": "task_1793250276252_z2yh",
+    "title": "<@U_BOT> 一覧",
+    "creatorId": "U1234",
+    "assigneeId": "U1234",
+    "channelId": "C1234",
+    "priority": "medium",
+    "dueDate": "2026-10-29",
+    "description": "",
+    "status": "pending",
+    "createdAt": "2026-10-29"
+  },
+  {
+    "id": "task_1793250276249_mpvs",
+    "title": "<@U_BOT> 新しいタスク",
+    "creatorId": "U1234",
+    "assigneeId": "U1234",
+    "channelId": "C1234",
+    "priority": "medium",
+    "dueDate": "2026-10-29",
+    "description": "",
+    "status": "pending",
+    "createdAt": "2026-10-29"
+  },
+  {
     "id": "task_1793249667202_xr03",
     "title": "test task",
     "creatorId": "U1234",
@@ -40,7 +76,7 @@
     "priority": "medium",
     "dueDate": "2026-10-29",
     "description": "t",
-    "status": "pending",
+    "status": "completed",
     "createdAt": "2026-10-29"
   }
 ]
