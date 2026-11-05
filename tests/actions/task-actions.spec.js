@@ -8,6 +8,8 @@ import {
   navTabCounterCallback,
   navTabTasksCallback,
   openAddTaskModalCallback,
+  openAddTaskModalFromChannelCallback,
+  openChannelTasksModalCallback,
   toggleTaskStatusCallback,
 } from '../../listeners/actions/task-actions.js';
 
@@ -15,6 +17,7 @@ describe('task-actions', () => {
   let fakeAck;
   let fakeClient;
   let fakeBody;
+  let fakeRespond;
   let fakeLogger;
 
   beforeEach(() => {
@@ -23,12 +26,15 @@ describe('task-actions', () => {
       views: {
         publish: mock.fn(),
         open: mock.fn(),
+        update: mock.fn(),
       },
     };
     fakeBody = {
       user: { id: 'U1234' },
       trigger_id: 'trig123',
+      view: { type: 'home' },
     };
+    fakeRespond = mock.fn();
     fakeLogger = {
       error: mock.fn(),
     };
@@ -107,12 +113,13 @@ describe('task-actions', () => {
     assert.strictEqual(fakeClient.views.publish.mock.callCount(), 1);
   });
 
-  it('should toggle task status', async () => {
+  it('should toggle task status in home view', async () => {
     await toggleTaskStatusCallback({
       ack: fakeAck,
       body: fakeBody,
       action: { value: 'task_1' },
       client: fakeClient,
+      respond: fakeRespond,
       logger: fakeLogger,
     });
 
@@ -120,10 +127,69 @@ describe('task-actions', () => {
     assert.strictEqual(fakeClient.views.publish.mock.callCount(), 1);
   });
 
+  it('should toggle task status in modal view', async () => {
+    fakeBody.view = { type: 'modal', id: 'V123', private_metadata: 'C1234' };
+
+    await toggleTaskStatusCallback({
+      ack: fakeAck,
+      body: fakeBody,
+      action: { value: 'task_1' },
+      client: fakeClient,
+      respond: fakeRespond,
+      logger: fakeLogger,
+    });
+
+    assert.strictEqual(fakeAck.mock.callCount(), 1);
+    assert.strictEqual(fakeClient.views.update.mock.callCount(), 1);
+  });
+
+  it('should toggle task status in channel message', async () => {
+    fakeBody.view = undefined;
+    fakeBody.channel = { id: 'C1234' };
+
+    await toggleTaskStatusCallback({
+      ack: fakeAck,
+      body: fakeBody,
+      action: { value: 'task_1' },
+      client: fakeClient,
+      respond: fakeRespond,
+      logger: fakeLogger,
+    });
+
+    assert.strictEqual(fakeAck.mock.callCount(), 1);
+    assert.strictEqual(fakeRespond.mock.callCount(), 1);
+  });
+
   it('should open task modal', async () => {
     await openAddTaskModalCallback({
       ack: fakeAck,
       body: fakeBody,
+      client: fakeClient,
+      logger: fakeLogger,
+    });
+
+    assert.strictEqual(fakeAck.mock.callCount(), 1);
+    assert.strictEqual(fakeClient.views.open.mock.callCount(), 1);
+  });
+
+  it('should open add task modal from channel', async () => {
+    await openAddTaskModalFromChannelCallback({
+      ack: fakeAck,
+      body: fakeBody,
+      action: { value: 'C1234' },
+      client: fakeClient,
+      logger: fakeLogger,
+    });
+
+    assert.strictEqual(fakeAck.mock.callCount(), 1);
+    assert.strictEqual(fakeClient.views.open.mock.callCount(), 1);
+  });
+
+  it('should open channel tasks modal', async () => {
+    await openChannelTasksModalCallback({
+      ack: fakeAck,
+      body: fakeBody,
+      action: { value: 'C1234' },
       client: fakeClient,
       logger: fakeLogger,
     });

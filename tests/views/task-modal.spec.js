@@ -14,6 +14,11 @@ describe('task-modal', () => {
     fakeView = {
       state: {
         values: {
+          channel_block: {
+            channel_input: {
+              selected_conversation: 'C1234',
+            },
+          },
           title_block: {
             title_input: {
               value: 'test task',
@@ -53,13 +58,16 @@ describe('task-modal', () => {
       views: {
         publish: mock.fn(),
       },
+      chat: {
+        postMessage: mock.fn(),
+      },
     };
     fakeLogger = {
       error: mock.fn(),
     };
   });
 
-  it('should acknowledge and add task then update home view', async () => {
+  it('should acknowledge and add task, publish home view, and post message to channel', async () => {
     await submitAddTaskModalCallback({
       ack: fakeAck,
       view: fakeView,
@@ -70,5 +78,10 @@ describe('task-modal', () => {
 
     assert.strictEqual(fakeAck.mock.callCount(), 1);
     assert.strictEqual(fakeClient.views.publish.mock.callCount(), 1);
+    assert.strictEqual(fakeClient.chat.postMessage.mock.callCount(), 1);
+
+    const postArg = fakeClient.chat.postMessage.mock.calls[0].arguments[0];
+    assert.strictEqual(postArg.channel, 'C1234');
+    assert(postArg.text.includes('test task'));
   });
 });

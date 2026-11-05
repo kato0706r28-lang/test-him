@@ -29,12 +29,33 @@
         "command": "/sample-command",
         "description": "Runs a sample command",
         "should_escape": false
+      },
+      {
+        "command": "/task",
+        "description": "このチャンネルにタスクを追加します",
+        "should_escape": false
+      },
+      {
+        "command": "/tasks",
+        "description": "このチャンネルのタスク一覧を表示します",
+        "should_escape": false
       }
     ]
   },
   "oauth_config": {
     "scopes": {
-      "bot": ["app_mentions:read", "channels:history", "chat:write", "commands", "im:history"]
+      "bot": [
+        "app_mentions:read",
+        "channels:history",
+        "channels:read",
+        "chat:write",
+        "commands",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "im:read",
+        "mpim:read"
+      ]
     }
   },
   "settings": {

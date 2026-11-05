@@ -43,4 +43,3 @@ describe('app-mention', () => {
     assert.strictEqual(fakeSay.mock.callCount(), 1);
   });
 });
-
