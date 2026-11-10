@@ -22,11 +22,4 @@ export const register = (app) => {
   app.action('filter_clear_channel', filterClearChannelCallback);
   app.action('toggle_task_status', toggleTaskStatusCallback);
   app.action('open_add_task_modal', openAddTaskModalCallback);
-  app.action('open_add_task_modal_from_channel', openAddTaskModalFromChannelCallback);
-  app.action('open_channel_tasks_modal', openChannelTasksModalCallback);
-  app.action(
-    'open_add_task_modal_from_channel',
-    openAddTaskModalFromChannelCallback,
-  );
-  app.action('open_channel_tasks_modal', openChannelTasksModalCallback);
 };

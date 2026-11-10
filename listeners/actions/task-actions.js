@@ -36,12 +36,7 @@ export const navTabCounterCallback = async ({ ack, body, client, logger }) => {
   }
 };
 
-export const filterAllTasksCallback = async ({
-  ack,
-  body,
-  client,
-  logger,
-}) => {
+export const filterAllTasksCallback = async ({ ack, body, client, logger }) => {
   try {
     await ack();
     setUserState(body.user.id, { activeFilter: 'all' });
@@ -67,13 +62,7 @@ export const filterMyTasksCallback = async ({ ack, body, client, logger }) => {
   }
 };
 
-export const filterByChannelCallback = async ({
-  ack,
-  body,
-  action,
-  client,
-  logger,
-}) => {
+export const filterByChannelCallback = async ({ ack, body, action, client, logger }) => {
   try {
     await ack();
     setUserState(body.user.id, {
@@ -88,12 +77,7 @@ export const filterByChannelCallback = async ({
   }
 };
 
-export const filterClearChannelCallback = async ({
-  ack,
-  body,
-  client,
-  logger,
-}) => {
+export const filterClearChannelCallback = async ({ ack, body, client, logger }) => {
   try {
     await ack();
     setUserState(body.user.id, { selectedChannel: null });
@@ -106,14 +90,7 @@ export const filterClearChannelCallback = async ({
   }
 };
 
-export const toggleTaskStatusCallback = async ({
-  ack,
-  body,
-  action,
-  client,
-  respond,
-  logger,
-}) => {
+export const toggleTaskStatusCallback = async ({ ack, body, action, client, respond, logger }) => {
   try {
     await ack();
     toggleTaskStatus(action.value, body.user.id);
@@ -148,20 +125,7 @@ export const toggleTaskStatusCallback = async ({
         return;
       }
 
-      const task = allTasks.find((t) => t.id === action.value);
-      const firstBlockText = body.message?.blocks?.[0]?.text?.text || '';
-
-      if (firstBlockText.includes('タスクが追加されました') && task) {
-        await respond({
-          replace_original: true,
-          blocks: buildTaskCreatedNotificationBlocks(task),
-        });
-        return;
-      }
-
-      const channelTasks = allTasks.filter(
-        (t) => t.channelId === body.channel.id,
-      );
+      const channelTasks = allTasks.filter((t) => t.channelId === body.channel.id);
       await respond({
         replace_original: true,
         blocks: buildChannelTaskListBlocks(channelTasks, body.channel.id),
@@ -172,12 +136,7 @@ export const toggleTaskStatusCallback = async ({
   }
 };
 
-export const openAddTaskModalCallback = async ({
-  ack,
-  body,
-  client,
-  logger,
-}) => {
+export const openAddTaskModalCallback = async ({ ack, body, client, logger }) => {
   try {
     await ack();
     const state = getUserState(body.user.id);
@@ -210,50 +169,6 @@ export const openAddTaskModalFromChannelCallback = async ({ ack, body, action, c
 };
 
 export const openChannelTasksModalCallback = async ({ ack, body, action, client, logger }) => {
-  try {
-    await ack();
-    const channelId = action.value || body.channel?.id || null;
-    await client.views.open({
-      trigger_id: body.trigger_id,
-      view: buildChannelTasksModalView({
-        channelId,
-        userId: body.user.id,
-      }),
-    });
-  } catch (error) {
-    logger.error(error);
-  }
-};
-
-export const openAddTaskModalFromChannelCallback = async ({
-  ack,
-  body,
-  action,
-  client,
-  logger,
-}) => {
-  try {
-    await ack();
-    const channelId = action.value || body.channel?.id || null;
-    await client.views.open({
-      trigger_id: body.trigger_id,
-      view: buildTaskModalView({
-        userId: body.user.id,
-        defaultChannelId: channelId,
-      }),
-    });
-  } catch (error) {
-    logger.error(error);
-  }
-};
-
-export const openChannelTasksModalCallback = async ({
-  ack,
-  body,
-  action,
-  client,
-  logger,
-}) => {
   try {
     await ack();
     const channelId = action.value || body.channel?.id || null;

@@ -129,9 +129,7 @@ const buildCounterBlocks = (tasks, userId) => {
   const total = tasks.length;
   const completed = tasks.filter((t) => t.status === 'completed').length;
   const pending = total - completed;
-  const myTasks = tasks.filter(
-    (t) => t.assigneeId === userId || t.creatorId === userId,
-  );
+  const myTasks = tasks.filter((t) => t.assigneeId === userId || t.creatorId === userId);
   const myPending = myTasks.filter((t) => t.status !== 'completed').length;
 
   return [
@@ -229,19 +227,13 @@ export const buildHomeView = ({ userId }) => {
 
   let filteredTasks = allTasks;
   if (state.selectedChannel) {
-    filteredTasks = filteredTasks.filter(
-      (t) => t.channelId === state.selectedChannel,
-    );
+    filteredTasks = filteredTasks.filter((t) => t.channelId === state.selectedChannel);
   }
   if (state.activeFilter === 'my') {
-    filteredTasks = filteredTasks.filter(
-      (t) => t.assigneeId === userId || t.creatorId === userId,
-    );
+    filteredTasks = filteredTasks.filter((t) => t.assigneeId === userId || t.creatorId === userId);
   }
 
-  const channelTitle = state.selectedChannel
-    ? `📢 <#${state.selectedChannel}> のタスク`
-    : '🌐 全体共有タスク';
+  const channelTitle = state.selectedChannel ? `📢 <#${state.selectedChannel}> のタスク` : '🌐 全体共有タスク';
 
   const headerBlock = {
     type: 'section',
@@ -270,9 +262,7 @@ export const buildHomeView = ({ userId }) => {
         include: ['public', 'private'],
         exclude_bot_users: true,
       },
-      ...(state.selectedChannel?.startsWith('C')
-        ? { initial_conversation: state.selectedChannel }
-        : {}),
+      ...(state.selectedChannel?.startsWith('C') ? { initial_conversation: state.selectedChannel } : {}),
     },
   ];
 
@@ -342,8 +332,7 @@ export const buildHomeView = ({ userId }) => {
     }
 
     for (const [chId, tasks] of channelMap.entries()) {
-      const title =
-        chId === 'none' ? '📌 チャンネル未指定' : `📢 <#${chId}>`;
+      const title = chId === 'none' ? '📌 チャンネル未指定' : `📢 <#${chId}>`;
       taskBlocks.push({
         type: 'section',
         text: {
@@ -631,121 +620,6 @@ export const buildTaskCreatedNotificationBlocks = (task) => {
 export const buildChannelTasksModalView = ({ channelId, userId }) => {
   const allTasks = loadTasks(userId);
   const channelTasks = channelId && channelId !== 'all' ? allTasks.filter((t) => t.channelId === channelId) : allTasks;
-
-  const headerTitle =
-    channelId && channelId !== 'all'
-      ? `📢 <#${channelId}> のタスク一覧 (${channelTasks.length}件)`
-      : `🌐 全体タスク一覧 (${channelTasks.length}件)`;
-
-  const blocks = [
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: headerTitle,
-      },
-      accessory: {
-        type: 'button',
-        text: { type: 'plain_text', text: '➕ タスクを追加', emoji: true },
-        style: 'primary',
-        action_id: 'open_add_task_modal_from_channel',
-        value: channelId || '',
-      },
-    },
-    { type: 'divider' },
-  ];
-
-  if (channelTasks.length === 0) {
-    blocks.push({
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: '現在登録されているタスクはありません。',
-      },
-    });
-  } else {
-    for (const task of channelTasks) {
-      blocks.push(buildSingleTaskBlock(task));
-      blocks.push({ type: 'divider' });
-    }
-  }
-
-  return {
-    type: 'modal',
-    private_metadata: channelId || '',
-    title: {
-      type: 'plain_text',
-      text: 'タスク一覧',
-      emoji: true,
-    },
-    close: {
-      type: 'plain_text',
-      text: '閉じる',
-      emoji: true,
-    },
-    blocks,
-  };
-};
-
-export const buildTaskCreatedNotificationBlocks = (task) => {
-  const priorityInfo = PRIORITY_MAP[task.priority] || PRIORITY_MAP.medium;
-  const isDone = task.status === 'completed';
-  const titleText = isDone ? `~*${task.title}*~` : `*${task.title}*`;
-  const descLine = task.description ? `\n> ${task.description}` : '';
-
-  return [
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: `📢 *新しいタスクが追加されました！*\n${titleText}\n作成: <@${task.creatorId}> | 担当: <@${task.assigneeId}>\n優先度: ${priorityInfo.emoji} ${priorityInfo.label} | 期限: 📅 ${task.dueDate}${descLine}`,
-      },
-    },
-    {
-      type: 'actions',
-      elements: [
-        {
-          type: 'button',
-          text: {
-            type: 'plain_text',
-            text: isDone ? '↩️ 未完了に戻す' : '✅ 完了にする',
-            emoji: true,
-          },
-          style: isDone ? undefined : 'primary',
-          action_id: 'toggle_task_status',
-          value: task.id,
-        },
-        {
-          type: 'button',
-          text: {
-            type: 'plain_text',
-            text: '📋 タスク一覧を開く',
-            emoji: true,
-          },
-          action_id: 'open_channel_tasks_modal',
-          value: task.channelId || 'all',
-        },
-        {
-          type: 'button',
-          text: {
-            type: 'plain_text',
-            text: '➕ タスクを追加',
-            emoji: true,
-          },
-          action_id: 'open_add_task_modal_from_channel',
-          value: task.channelId || '',
-        },
-      ],
-    },
-  ];
-};
-
-export const buildChannelTasksModalView = ({ channelId, userId }) => {
-  const allTasks = loadTasks(userId);
-  const channelTasks =
-    channelId && channelId !== 'all'
-      ? allTasks.filter((t) => t.channelId === channelId)
-      : allTasks;
 
   const headerTitle =
     channelId && channelId !== 'all'
